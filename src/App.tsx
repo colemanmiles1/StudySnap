@@ -51,11 +51,6 @@ export default function App() {
   useEffect(() => {
     const isDark = getStoredDarkMode();
     setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
 
     const saved = getStoredSessions();
     setSessions(saved);
@@ -64,10 +59,22 @@ export default function App() {
     }
   }, []);
 
+  // Synchronize dark mode class to HTML and body reactively
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
+    setStoredDarkMode(darkMode);
+  }, [darkMode]);
+
   const handleToggleDarkMode = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    setStoredDarkMode(next);
+    setDarkMode((prev) => !prev);
   };
 
   // Main AI Analysis

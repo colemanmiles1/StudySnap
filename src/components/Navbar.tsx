@@ -61,12 +61,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden sm:inline">New Scan</span>
           </button>
 
+          {/* Day / Night Mode Toggle Button */}
           <button
             onClick={onToggleDarkMode}
-            aria-label="Toggle dark mode"
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+            aria-label={darkMode ? 'Switch to Day mode' : 'Switch to Night mode'}
+            title={darkMode ? 'Switch to Day mode (Light)' : 'Switch to Night mode (Dark)'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 shadow-2xs ${
+              darkMode
+                ? 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-750 hover:border-amber-400/50'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-300'
+            }`}
           >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            {darkMode ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
+                <span className="hidden sm:inline">Day</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-500" />
+                <span className="hidden sm:inline">Night</span>
+              </>
+            )}
           </button>
         </div>
       </div>
