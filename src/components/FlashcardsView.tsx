@@ -4,11 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import {
   ChevronLeft,
   ChevronRight,
   Shuffle,
   RotateCw,
+  RotateCcw,
   CheckCircle2,
   Sparkles,
   Lightbulb,
@@ -16,6 +18,11 @@ import {
   List,
   Layers,
   HelpCircle,
+  Trophy,
+  PartyPopper,
+  Award,
+  ArrowRight,
+  Star,
 } from 'lucide-react';
 import { Flashcard } from '../types/study';
 
@@ -23,18 +30,22 @@ interface FlashcardsViewProps {
   initialFlashcards: Flashcard[];
   onExplainConcept: (term: string, context?: string) => void;
   onUpdateFlashcards?: (updated: Flashcard[]) => void;
+  onGoToQuiz?: () => void;
 }
 
 export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
   initialFlashcards,
   onExplainConcept,
   onUpdateFlashcards,
+  onGoToQuiz,
 }) => {
   const [cards, setCards] = useState<Flashcard[]>(initialFlashcards);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'flip' | 'list'>('flip');
   const [showHint, setShowHint] = useState<boolean>(false);
+  const [hasCelebrated, setHasCelebrated] = useState<boolean>(false);
+  const [showReviewDeck, setShowReviewDeck] = useState<boolean>(false);
 
   // Sync if initialFlashcards changes
   useEffect(() => {
@@ -42,12 +53,93 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     setCurrentIndex(0);
     setIsFlipped(false);
     setShowHint(false);
+    setHasCelebrated(false);
+    setShowReviewDeck(false);
   }, [initialFlashcards]);
+
+  // Mastered stats
+  const masteredCount = cards.filter((c) => c.mastered).length;
+  const isAllMastered = cards.length > 0 && masteredCount === cards.length;
+  const progressPercent = Math.round((masteredCount / Math.max(1, cards.length)) * 100);
+
+  // Confetti celebration bursts
+  const fireCelebrationConfetti = () => {
+    try {
+      // Stage 1: Main center burst
+      confetti({
+        particleCount: 85,
+        spread: 90,
+        origin: { y: 0.55 },
+        colors: ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#38bdf8'],
+      });
+
+      // Stage 2: Left cannon
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 60,
+          spread: 65,
+          origin: { x: 0.05, y: 0.65 },
+          colors: ['#38bdf8', '#34d399', '#fbbf24', '#a855f7'],
+        });
+      }, 200);
+
+      // Stage 3: Right cannon
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 120,
+          spread: 65,
+          origin: { x: 0.95, y: 0.65 },
+          colors: ['#818cf8', '#f472b6', '#38bdf8', '#10b981'],
+        });
+      }, 400);
+
+      // Stage 4: Star shower
+      setTimeout(() => {
+        confetti({
+          particleCount: 35,
+          spread: 120,
+          origin: { y: 0.35 },
+          colors: ['#fbbf24', '#f59e0b', '#10b981', '#38bdf8'],
+        });
+      }, 650);
+    } catch (err) {
+      console.warn('Confetti error:', err);
+    }
+  };
+
+  // Trigger celebration once when all cards become mastered
+  useEffect(() => {
+    if (isAllMastered) {
+      if (!hasCelebrated) {
+        fireCelebrationConfetti();
+        setHasCelebrated(true);
+      }
+    } else {
+      setHasCelebrated(false);
+    }
+  }, [isAllMastered, hasCelebrated]);
+
+  // Handler to redo/reset all flashcards
+  const handleRedoFlashcards = (shouldShuffle: boolean = false) => {
+    let reset = cards.map((c) => ({ ...c, mastered: false }));
+    if (shouldShuffle) {
+      reset = [...reset].sort(() => Math.random() - 0.5);
+    }
+    setCards(reset);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setShowHint(false);
+    setHasCelebrated(false);
+    setShowReviewDeck(false);
+    onUpdateFlashcards?.(reset);
+  };
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (viewMode !== 'flip') return;
+      if (viewMode !== 'flip' || (isAllMastered && !showReviewDeck)) return;
       if (e.key === 'ArrowRight') {
         nextCard();
       } else if (e.key === 'ArrowLeft') {
@@ -59,7 +151,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, cards.length, isFlipped, viewMode]);
+  }, [currentIndex, cards.length, isFlipped, viewMode, isAllMastered, showReviewDeck]);
 
   const currentCard = cards[currentIndex] || cards[0];
 
@@ -93,9 +185,6 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     setCards(updated);
     onUpdateFlashcards?.(updated);
   };
-
-  const masteredCount = cards.filter((c) => c.mastered).length;
-  const progressPercent = Math.round((masteredCount / Math.max(1, cards.length)) * 100);
 
   const speakText = (text: string) => {
     if (!('speechSynthesis' in window)) return;
@@ -150,23 +239,169 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
         {/* Mastery Progress Bar */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-600 dark:text-slate-400">
-              Mastery: {masteredCount} of {cards.length} mastered
+            <span className="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <span>Mastery: {masteredCount} of {cards.length} mastered</span>
+              {isAllMastered && (
+                <span className="text-amber-500 flex items-center gap-0.5 font-bold">
+                  <Trophy className="w-3 h-3" /> 100%!
+                </span>
+              )}
             </span>
             <span className="font-bold text-emerald-600 dark:text-emerald-400">
               {progressPercent}%
             </span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300"
+              className={`h-full rounded-full transition-all duration-300 ${
+                isAllMastered
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 animate-pulse'
+                  : 'bg-gradient-to-r from-sky-500 to-emerald-500'
+              }`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
       </div>
 
-      {viewMode === 'flip' ? (
+      {/* CONGRATULATIONS SCREEN (Triggered when all flashcards are marked as mastered) */}
+      {isAllMastered && !showReviewDeck ? (
+        <div className="bg-gradient-to-b from-white via-sky-50/50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-emerald-950/20 rounded-3xl p-6 sm:p-10 border-2 border-emerald-400/70 dark:border-emerald-500/60 shadow-xl space-y-6 text-center animate-fadeIn relative overflow-hidden">
+          {/* Subtle decorative glow */}
+          <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-emerald-400/15 dark:bg-emerald-500/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-sky-400/15 dark:bg-sky-500/15 blur-3xl pointer-events-none" />
+
+          {/* Trophy & Badge Icon with Animation */}
+          <div className="relative inline-block mx-auto">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-500 text-slate-950 flex items-center justify-center shadow-lg shadow-amber-500/30 mx-auto transform hover:scale-105 transition-transform">
+              <Trophy className="w-10 h-10 sm:w-12 sm:h-12" />
+            </div>
+            <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md animate-bounce">
+              <Sparkles className="w-4 h-4" />
+            </span>
+          </div>
+
+          {/* Congratulations Title & Body */}
+          <div className="space-y-2 max-w-lg mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-black tracking-wide uppercase">
+              <PartyPopper className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>100% Deck Mastery Unlocked!</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Congratulations! You&apos;ve Mastered All Flashcards!
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              Sensational job! You&apos;ve successfully reviewed and conquered every single card ({cards.length} of {cards.length}) in this deck. Active recall retention is locked in.
+            </p>
+          </div>
+
+          {/* Metrics summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">100%</span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">Mastery Achieved</p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <span className="text-2xl font-black text-sky-600 dark:text-sky-400">{cards.length}/{cards.length}</span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">Cards Completed</p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">Exam</span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">Ready to Ace</p>
+            </div>
+          </div>
+
+          {/* Core Action Buttons: Redo Flashcards, Shuffle & Redo */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 max-w-md mx-auto">
+            {/* PRIMARY: REDO FLASHCARDS */}
+            <button
+              onClick={() => handleRedoFlashcards(false)}
+              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-sm shadow-md shadow-sky-500/25 active:scale-95 transition-all"
+              title="Reset all cards to unmastered and practice again"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Redo Flashcards</span>
+            </button>
+
+            {/* SHUFFLE & REDO */}
+            <button
+              onClick={() => handleRedoFlashcards(true)}
+              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-md shadow-emerald-500/25 active:scale-95 transition-all"
+              title="Shuffle cards and study again in random order"
+            >
+              <Shuffle className="w-4 h-4" />
+              <span>Shuffle & Redo</span>
+            </button>
+          </div>
+
+          {/* Secondary Actions */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1 text-xs">
+            {onGoToQuiz && (
+              <button
+                onClick={onGoToQuiz}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold transition-colors shadow-2xs"
+              >
+                <Award className="w-4 h-4 text-indigo-500" />
+                <span>Test Yourself with Practice Quiz</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <button
+              onClick={() => setShowReviewDeck(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition-colors"
+              title="Inspect cards without clearing your mastery status"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Review Cards</span>
+            </button>
+
+            <button
+              onClick={fireCelebrationConfetti}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/80 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-semibold transition-colors"
+              title="Launch celebratory confetti again"
+            >
+              <PartyPopper className="w-3.5 h-3.5 text-amber-500" />
+              <span>Confetti!</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Regular Deck View (or Review mode if user clicked Review Cards) */
+        <>
+          {/* Deck Mastered Banner if user is in review mode */}
+          {isAllMastered && (
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                    Deck 100% Mastered! 🎉
+                  </h4>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                    You have mastered all {cards.length} cards in this study deck.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowReviewDeck(false)}
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition-colors"
+                >
+                  View Celebration
+                </button>
+                <button
+                  onClick={() => handleRedoFlashcards(false)}
+                  className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Redo Flashcards</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'flip' ? (
         /* 3D Flip Card Interactive View */
         <div className="flex flex-col items-center space-y-4">
           {/* Card Frame with 3D perspective */}
@@ -382,6 +617,8 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
           ))}
         </div>
       )}
-    </div>
-  );
+    </>
+  )}
+</div>
+);
 };

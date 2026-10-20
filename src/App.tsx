@@ -323,6 +323,7 @@ export default function App() {
             initialFlashcards={currentSession.flashcards}
             onExplainConcept={handleOpenExplainModal}
             onUpdateFlashcards={handleUpdateFlashcards}
+            onGoToQuiz={() => setActiveTab('quiz')}
           />
         )}
 
