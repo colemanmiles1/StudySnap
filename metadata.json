@@ -1,0 +1,10 @@
+{
+  "name": "StudySnap",
+  "description": "AI study assistant for college students. Snap photos of handwritten notes or textbooks to generate instant smart summaries, interactive flashcards, and practice quizzes.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
