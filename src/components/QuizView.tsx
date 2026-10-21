@@ -17,7 +17,8 @@ import {
   Lightbulb,
   Check,
 } from 'lucide-react';
-import { QuizQuestion, StudySummary } from '../types/study';
+import { QuizQuestion, StudySummary, StudySession } from '../types/study';
+import { DeckSelector } from './DeckSelector';
 
 interface QuizViewProps {
   initialQuiz: QuizQuestion[];
@@ -25,6 +26,10 @@ interface QuizViewProps {
   onSaveScore?: (score: number, total: number) => void;
   onRegenerateQuiz: () => Promise<void>;
   isRegenerating: boolean;
+  allSessions?: StudySession[];
+  currentSessionId?: string;
+  onSwitchSession?: (sessionId: string) => void;
+  onNewScan?: () => void;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({
@@ -33,6 +38,10 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onSaveScore,
   onRegenerateQuiz,
   isRegenerating,
+  allSessions,
+  currentSessionId,
+  onSwitchSession,
+  onNewScan,
 }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuiz);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -124,6 +133,17 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
   return (
     <div className="w-full space-y-5 pb-20 animate-fadeIn">
+      {/* Pull-down Menu to switch between previously submitted quiz question sets */}
+      {allSessions && allSessions.length > 0 && currentSessionId && onSwitchSession && (
+        <DeckSelector
+          sessions={allSessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={onSwitchSession}
+          type="quiz"
+          onNewScan={onNewScan}
+        />
+      )}
+
       {/* Header Tracker */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex items-center justify-between">

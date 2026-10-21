@@ -198,8 +198,30 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
   };
 
   const handleSelectSample = (sample: SampleNote) => {
-    // Sample previewUrl is an SVG data URL
-    addImageToQueue(sample.previewUrl, 'image/svg+xml', sample.id);
+    const newEntry = {
+      id: `sample-${sample.id}-${Date.now()}`,
+      base64: sample.previewUrl,
+      mimeType: 'image/svg+xml',
+      previewUrl: sample.previewUrl,
+      sampleId: sample.id,
+    };
+    setSelectedImages([newEntry]);
+    setActivePreviewIndex(0);
+    window.scrollTo({ top: 320, behavior: 'smooth' });
+  };
+
+  const handleInstantAnalyzeSample = (e: React.MouseEvent, sample: SampleNote) => {
+    e.stopPropagation();
+    onAnalyze(
+      [
+        {
+          base64: sample.previewUrl,
+          mimeType: 'image/svg+xml',
+          sampleId: sample.id,
+        },
+      ],
+      sample.id
+    );
   };
 
   const handleSubmit = () => {
@@ -410,33 +432,51 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {SAMPLE_NOTES.map((sample) => (
-            <div
-              key={sample.id}
-              onClick={() => handleSelectSample(sample)}
-              className="group cursor-pointer rounded-2xl p-3.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-400 dark:hover:border-sky-500 transition-all text-left flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{sample.thumbnail}</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
-                    {sample.course.split(' - ')[0]}
-                  </span>
+          {SAMPLE_NOTES.map((sample) => {
+            const isSelected = selectedImages.some((img) => img.sampleId === sample.id);
+            return (
+              <div
+                key={sample.id}
+                onClick={() => handleSelectSample(sample)}
+                className={`group cursor-pointer rounded-2xl p-3.5 transition-all text-left flex flex-col justify-between border ${
+                  isSelected
+                    ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500 shadow-md ring-2 ring-sky-400/20'
+                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50/80 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-sky-400 dark:hover:border-sky-500'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{sample.thumbnail}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                      {sample.course.split(' - ')[0]}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                    {sample.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
+                    {sample.description}
+                  </p>
                 </div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                  {sample.title}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                  {sample.description}
-                </p>
-              </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs font-semibold text-sky-600 dark:text-sky-400">
-                <span>Select note</span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {isSelected ? '✓ Selected' : 'Tap to preview'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleInstantAnalyzeSample(e, sample)}
+                    disabled={isAnalyzing}
+                    className="px-2.5 py-1 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors shrink-0"
+                    title="Generate notes immediately"
+                  >
+                    <Sparkles className="w-3 h-3 text-yellow-300" />
+                    <span>Generate</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

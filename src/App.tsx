@@ -22,7 +22,7 @@ import {
   getStoredDarkMode,
   setStoredDarkMode,
 } from './utils/storage';
-import { AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { AlertCircle, Sparkles, RefreshCw, Layers, Award } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -325,24 +325,74 @@ export default function App() {
         )}
 
         {/* TAB 3: FLASHCARDS (3D Flip Deck) */}
-        {activeTab === 'flashcards' && currentSession && (
-          <FlashcardsView
-            initialFlashcards={currentSession.flashcards}
-            onExplainConcept={handleOpenExplainModal}
-            onUpdateFlashcards={handleUpdateFlashcards}
-            onGoToQuiz={() => setActiveTab('quiz')}
-          />
+        {activeTab === 'flashcards' && (
+          currentSession ? (
+            <FlashcardsView
+              initialFlashcards={currentSession.flashcards}
+              onExplainConcept={handleOpenExplainModal}
+              onUpdateFlashcards={handleUpdateFlashcards}
+              onGoToQuiz={() => setActiveTab('quiz')}
+              allSessions={sessions}
+              currentSessionId={currentSession.id}
+              onSwitchSession={(sessionId) => {
+                const target = sessions.find((s) => s.id === sessionId);
+                if (target) setCurrentSession(target);
+              }}
+              onNewScan={() => setActiveTab('home')}
+            />
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 text-center max-w-md mx-auto space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-500 flex items-center justify-center mx-auto">
+                <Layers className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">No Active Flashcard Deck</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Scan your handwritten notes or pick a sample note on the Home page to generate your first 3D flashcard deck.
+              </p>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm shadow-sm transition-colors"
+              >
+                Go to Scanner
+              </button>
+            </div>
+          )
         )}
 
         {/* TAB 4: PRACTICE QUIZ (Interactive multiple choice) */}
-        {activeTab === 'quiz' && currentSession && (
-          <QuizView
-            initialQuiz={currentSession.quiz}
-            summary={currentSession.summary}
-            onSaveScore={handleSaveQuizScore}
-            onRegenerateQuiz={handleRegenerateQuiz}
-            isRegenerating={isRegeneratingQuiz}
-          />
+        {activeTab === 'quiz' && (
+          currentSession ? (
+            <QuizView
+              initialQuiz={currentSession.quiz}
+              summary={currentSession.summary}
+              onSaveScore={handleSaveQuizScore}
+              onRegenerateQuiz={handleRegenerateQuiz}
+              isRegenerating={isRegeneratingQuiz}
+              allSessions={sessions}
+              currentSessionId={currentSession.id}
+              onSwitchSession={(sessionId) => {
+                const target = sessions.find((s) => s.id === sessionId);
+                if (target) setCurrentSession(target);
+              }}
+              onNewScan={() => setActiveTab('home')}
+            />
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 text-center max-w-md mx-auto space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-500 flex items-center justify-center mx-auto">
+                <Award className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">No Active Quiz</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Scan your notes or pick a sample course on the Home page to generate practice exam questions.
+              </p>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-sm transition-colors"
+              >
+                Go to Scanner
+              </button>
+            </div>
+          )
         )}
 
         {/* TAB 5: HISTORY (Saved Sessions) */}
